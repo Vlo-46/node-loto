@@ -1,8 +1,12 @@
+import { Types } from 'mongoose'
+import { IUser } from "./user";
+
 export interface IPoem {
-    author: object
-    title: string
-    content: string
-    comment: object
-    like: number
-    dislike: number
+    _id?: Types.ObjectId;
+    author: IUser['_id'];
+    comments: Types.ObjectId[];
+    title: string;
+    content: string;
+    like: number;
+    dislike: number;
 }

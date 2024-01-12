@@ -1,15 +1,34 @@
 import { Poem } from "../models/Poem";
-import {IPoem} from "../interfaces/poem";
+import { IPoem } from "../interfaces/poem";
+import {Model} from "mongoose";
 
 export default class PoemService {
     static async findAll() {
-        return await Poem.find()
+        return Poem.find()
           .populate('author')
-          .populate('comment')
+          .populate('comment');
     }
 
     static async findById(id: string) {
-        return await Poem.findById(id);
+        const poem = await Poem.findById(id)
+          .populate({
+              path: 'author',
+              model: 'User',
+              select: 'name lastName email',
+          } as any)
+          .populate({
+              path: 'comments',
+              populate: {
+                  path: 'author',
+                  model: 'User',
+                  select: 'name lastName email',
+              }
+          } as any)
+          .exec();
+
+        if (!poem) return null
+
+        return poem
     }
 
     static async create(data: IPoem) {
@@ -17,13 +36,13 @@ export default class PoemService {
     }
 
     static async update(id: string, data: Partial<IPoem>) {
-        return await Poem.findOneAndUpdate({ _id: id }, { ...data }, {
+        return Poem.findOneAndUpdate({_id: id}, {...data}, {
             returnOriginal: false
-        })
+        });
     }
 
     static async remove(id: string) {
-        return await Poem.deleteOne({ _id: id })
+        return Poem.deleteOne({_id: id});
     }
 
     static async likeOrDislike(data: { like?: boolean, dislike?: boolean, poem_id: string }) {
@@ -33,6 +52,6 @@ export default class PoemService {
             await poem.save()
             return poem;
         }
-        return 'Poem not found'
+        return null
     }
 }

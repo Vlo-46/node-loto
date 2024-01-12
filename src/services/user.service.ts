@@ -12,20 +12,20 @@ export default class UserService {
     }
 
     static async update(id: string, data: Partial<IUser>) {
-        return await User.findOneAndUpdate({ _id: id }, { ...data }, {
+        return User.findOneAndUpdate({_id: id}, {...data}, {
             returnOriginal: false
-        })
+        });
     }
 
     static async remove(id: string) {
-        return await User.deleteOne({ _id: id })
+        return User.deleteOne({_id: id});
     }
 
     static async findById(id: string) {
-        return await User.findById(id);
+        return User.findById(id);
     }
 
     static async findAll() {
-        return await User.find();
+        return User.find();
     }
 }
