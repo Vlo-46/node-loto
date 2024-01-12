@@ -34,11 +34,13 @@ morgan(function (tokens, req, res) {
 // routes
 
 import indexRoute from './routes'
+import authRoute from './routes/auth'
 import poemsRoute from './routes/poems'
 import usersRoute from './routes/users'
 import commentsRoute from './routes/comments'
 
 app.use('/', indexRoute);
+app.use('/auth', authRoute);
 app.use('/poems', poemsRoute);
 app.use('/users', usersRoute);
 app.use('/comment', commentsRoute);

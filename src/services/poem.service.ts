@@ -5,6 +5,7 @@ import {Model} from "mongoose";
 export default class PoemService {
     static async findAll() {
         return Poem.find()
+          .sort('-date')
           .populate('author')
           .populate('comment');
     }
@@ -22,7 +23,8 @@ export default class PoemService {
                   path: 'author',
                   model: 'User',
                   select: 'name lastName email',
-              }
+              },
+              sort: {date: -1}
           } as any)
           .exec();
 

@@ -28,4 +28,8 @@ export default class UserService {
     static async findAll() {
         return User.find();
     }
+
+    static async findBy(type: string, email: string) {
+        return User.findOne({ type: email })
+    }
 }
