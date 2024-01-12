@@ -1,3 +1,4 @@
+import { Request, Response } from 'express'
 import AuthService from "../services/auth.service";
 
 const loginHandler = async (req: Request, res: Response) => {
@@ -22,7 +23,7 @@ const registerHandler = async (req: Request, res: Response) => {
 
 const logoutHandler = async (req: Request, res: Response) => {
     try {
-
+        return true
     } catch (e) {
         console.log('something went wrong', e)
     }

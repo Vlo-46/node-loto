@@ -30,6 +30,6 @@ export default class UserService {
     }
 
     static async findBy(type: string, email: string) {
-        return User.findOne({ type: email })
+        return User.findOne({ [type]: email })
     }
 }

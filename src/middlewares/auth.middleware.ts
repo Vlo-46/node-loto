@@ -7,7 +7,7 @@ interface AuthenticatedRequest extends DeepPartial<Request> {
 }
 export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-        const token = req.header ? ('Authorization') : null;
+        const token = (req.headers?.authorization as string).replace('Bearer ', '')
         if (!token) {
             return res.status(401).json({ message: 'Unauthorized - Missing token' });
         }

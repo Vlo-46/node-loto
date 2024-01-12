@@ -3,10 +3,10 @@ import { loginHandler, logoutHandler, registerHandler } from "../controllers/aut
 
 const router = Router()
 
-// router.post('/login', loginHandler)
-//
-// router.post('/register', registerHandler)
-//
-// router.post('/logout', logoutHandler)
+router.post('/login', loginHandler)
+
+router.post('/register', registerHandler)
+
+router.post('/logout', logoutHandler)
 
 export default router
