@@ -7,7 +7,7 @@ export default class PoemService {
         return Poem.find()
           .sort('-date')
           .populate('author')
-          .populate('comment');
+          // .populate('comment');
     }
 
     static async findById(id: string) {

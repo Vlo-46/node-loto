@@ -6,22 +6,33 @@ import {IUser} from "../interfaces/user";
 export default class AuthService {
     static async login(data: {email: string, password: string}) {
         const user = await UserService.findBy('email', data.email)
-        if (!user) return 'User not found'
+        if (!user) {
+            return {
+                error: 'User not found'
+            }
+        }
 
         const isPasswordMatch = await comparePasswords(data.password, user.password);
-        if (!isPasswordMatch) return 'Incorrect password'
+        if (!isPasswordMatch) {
+            return {
+                error: 'Incorrect password'
+            }
+        }
 
         const token = generateToken({ userId: user._id, email: user.email })
 
         return {
-            user,
             token
         };
     }
 
     static async register(data: IUser) {
         const candidate = await UserService.findBy('email', data.email)
-        if (candidate) return 'User is exist'
+        if (candidate) {
+            return {
+                error: 'User is exist'
+            }
+        }
 
         return  UserService.create(data)
     }
