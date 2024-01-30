@@ -49,7 +49,14 @@ interface IConnectedUser {
     isReady: boolean
 }
 
+interface IRooms {
+    _id: string
+    roomName: string
+    users: number
+}
+
 let connectedUsers: IConnectedUser[] = [];
+let rooms: IRooms[] = []
 let gameIsStarted = false
 
 io.on('connection', (socket: any) => {
@@ -80,13 +87,26 @@ io.on('connection', (socket: any) => {
         gameIsStarted = false
     });
 
+    socket.on('getRooms', async () => {
+        socket.emit('rooms', rooms)
+    })
+
+    socket.on('createRoom', async (roomName: string) => {
+        let createdRoom = {
+            _id: socket.id,
+            roomName,
+            users: 1,
+        }
+        rooms.push(createdRoom)
+        socket.emit('createdRoom', createdRoom)
+    })
+
     socket.on('disconnect', () => {
         const userIndex = connectedUsers.findIndex(user => user.id === socket.id);
         if (userIndex !== -1) {
             connectedUsers.splice(userIndex, 1);
             io.emit('updateUsers', connectedUsers);
         }
-
 
         if (connectedUsers.length === 1 && gameIsStarted) {
             io.emit('gameOver', connectedUsers[0].name)
@@ -109,6 +129,7 @@ app.use('/settings', settingsRoute);
 
 // database
 import { connectToDatabase } from './database';
+import {Room} from "./models/Room";
 
 connectToDatabase()
   .then(() => {
