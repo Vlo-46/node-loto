@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { User } from '../models/User'
 import UserService from "../services/user.service";
+import bcrypt from "bcrypt";
 
 const createUser = async (req: Request, res: Response)  => {
     try {
@@ -46,10 +47,15 @@ const deleteUser = async (req: Request, res: Response) => {
 
 const updateUser = async (req: Request, res: Response) => {
     try {
-        const { id, data } = req.body
-        const user = await UserService.update(id, data)
+        const { data } = req.body
 
-        return res.send(user)
+        if (data.hasOwnProperty('password')) {
+            data.password = bcrypt.hash(data.password, 10)
+        }
+
+        const user = await UserService.update(data)
+
+        return res.send({updated: !!user, user})
     } catch (e) {
         console.log('something went wrong', e)
     }

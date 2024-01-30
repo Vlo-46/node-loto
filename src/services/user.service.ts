@@ -11,8 +11,9 @@ export default class UserService {
         })
     }
 
-    static async update(id: string, data: Partial<IUser>) {
-        return User.findOneAndUpdate({_id: id}, {...data}, {
+    static async update(data: Partial<IUser>) {
+        return User.findByIdAndUpdate(data._id, {...data}, {
+            new: true,
             returnOriginal: false
         });
     }
