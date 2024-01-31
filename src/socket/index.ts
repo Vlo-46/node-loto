@@ -1,8 +1,11 @@
 import {Socket} from "socket.io-client";
-import {Room} from "../models/Room";
-import {IUser} from "../interfaces/user";
 import {Types} from "mongoose";
+import {Room} from "../models/Room";
 import {User} from "../models/User";
+import {ExpectedNumber} from "../models/ExpectedNumbers";
+import {IUser} from "../interfaces/user";
+import {Ticket} from "../models/Ticket";
+import {createTickets, generateExpectedNumbers} from "../helpers/loto";
 
 export async function getRooms(socket: Socket) {
     const allRooms: any = await Room.find()
@@ -10,11 +13,19 @@ export async function getRooms(socket: Socket) {
 }
 
 export async function newRoom(socket: Socket, roomName: string, io: any, user: IUser) {
+    const generatedExpectedNumbers = generateExpectedNumbers()
+    const expectedNumbers = await ExpectedNumber.create({
+        numbers: generatedExpectedNumbers
+    })
+
     await Room.create({
         roomName,
         users: [],
+        author: user._id,
+        expectedNumbers: expectedNumbers._id
     })
-    const allRooms: any = await Room.find()
+
+    const allRooms: any = await Room.find().populate('tickets')
     io.emit('updateRooms', allRooms)
 }
 
@@ -22,18 +33,26 @@ export async function joinToRoom(socket: Socket, roomId: string, io: any, user: 
     const currentRoom: any = await Room.findById(roomId).populate('users').exec()
     if (!currentRoom || currentRoom.users.length >= 5 || !!currentRoom.users.find((u: IUser) => !(u._id instanceof Types.ObjectId) || u._id.equals(user._id))) {
         console.log('user is exist')
+        io.emit('userExist')
         return
     }
 
+    const generatedTickets = createTickets()
+    const tickets = await Ticket.create({
+        data: generatedTickets,
+        user: user._id
+    })
+
     const updatedRoom: any = await Room.findByIdAndUpdate(
       roomId,
-      {$push: {users: user._id}},
-      {new: true, returnOriginal: false, populate: 'users'}
+      {$push: {users: user._id}, tickets: tickets._id},
+      {new: true, returnOriginal: false, populate: ['users', 'expectedNumbers', 'tickets', 'author']}
     );
 
     const allRooms: any = await Room.find().populate('users').exec();
     io.emit('updateUsers', updatedRoom.users);
     io.emit('updateRooms', allRooms)
+    io.emit('roomData', updatedRoom)
 }
 
 export async function checkWinner(socket: Socket, user: IUser, io: any) {

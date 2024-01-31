@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 const http = require('http').Server(app);
 const io = require('socket.io')(http, {
     cors: {
-        origin: 'http://localhost:3001',
+        origin: '*',
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
@@ -54,7 +54,7 @@ let connectedUsers: IConnectedUser[] = [];
 io.on('connection', (socket: any) => {
     socket.on('startGame', (roomId: string) => startGame(socket, roomId))
 
-    socket.on('winner', async (user: IUser) => await checkWinner(socket, user, io));
+    // socket.on('winner', async (user: IUser) => await checkWinner(socket, user, io));
 
     socket.on('getRooms', async () => await getRooms(socket))
 

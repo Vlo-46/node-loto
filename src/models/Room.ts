@@ -17,6 +17,18 @@ const RoomSchema = new Schema<IRoom>(
           type: Boolean,
           default: false
       },
+      author: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+      },
+      tickets: {
+          type: Schema.Types.ObjectId,
+          ref: "Ticket",
+      },
+      expectedNumbers: {
+          type: Schema.Types.ObjectId,
+          ref: "ExpectedNumber"
+      }
   },
   {timestamps: true}
 )

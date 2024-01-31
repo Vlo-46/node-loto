@@ -5,4 +5,7 @@ export interface IRoom {
     roomName: string
     users: Partial<IUser>[]
     gameIsStarted: boolean
+    author: any
+    tickets: any
+    expectedNumbers: any
 }
