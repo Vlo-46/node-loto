@@ -49,57 +49,18 @@ interface IConnectedUser {
     isReady: boolean
 }
 
-interface IRooms {
-    _id: string
-    roomName: string
-    users: number
-}
-
 let connectedUsers: IConnectedUser[] = [];
-let rooms: IRooms[] = []
-let gameIsStarted = false
 
 io.on('connection', (socket: any) => {
-    socket.on('join', (user: IConnectedUser) => {
-        connectedUsers.push({...user, id: socket.id});
-        io.emit('updateUsers', connectedUsers);
-    });
+    socket.on('startGame', (roomId: string) => startGame(socket, roomId))
 
-    socket.on('ready', (isReady: boolean) => {
-        connectedUsers.forEach((user) => {
-            if (user.id === socket.id) {
-                user.isReady = isReady
-            }
-        })
+    socket.on('winner', async (user: IUser) => await checkWinner(socket, user, io));
 
-        const allUsersReady = connectedUsers.every(user => user.isReady);
-        io.emit('usersReady', allUsersReady);
-        io.emit('updateUsers', connectedUsers)
-    });
+    socket.on('getRooms', async () => await getRooms(socket))
 
-    socket.on('startGame', (bool: boolean) => {
-        gameIsStarted = bool
-        socket.emit('startGame', gameIsStarted)
-    })
+    socket.on('createRoom', async ({roomName, user}: {roomName: string, user: IUser}) => await newRoom(socket, roomName, io, user))
 
-    socket.on('winner', (name: string) => {
-        io.emit('gameOver', name);
-        gameIsStarted = false
-    });
-
-    socket.on('getRooms', async () => {
-        socket.emit('rooms', rooms)
-    })
-
-    socket.on('createRoom', async (roomName: string) => {
-        let createdRoom = {
-            _id: socket.id,
-            roomName,
-            users: 1,
-        }
-        rooms.push(createdRoom)
-        socket.emit('createdRoom', createdRoom)
-    })
+    socket.on('joinToRoom', async ({roomId, user}: {roomId: string, user: IUser}) => await joinToRoom(socket, roomId, io, user))
 
     socket.on('disconnect', () => {
         const userIndex = connectedUsers.findIndex(user => user.id === socket.id);
@@ -108,10 +69,10 @@ io.on('connection', (socket: any) => {
             io.emit('updateUsers', connectedUsers);
         }
 
-        if (connectedUsers.length === 1 && gameIsStarted) {
-            io.emit('gameOver', connectedUsers[0].name)
-            gameIsStarted = false
-        }
+        // if (connectedUsers.length === 1 && gameIsStarted) {
+        //     io.emit('gameOver', connectedUsers[0].name)
+        //     gameIsStarted = false
+        // }
     });
 });
 
@@ -130,6 +91,8 @@ app.use('/settings', settingsRoute);
 // database
 import { connectToDatabase } from './database';
 import {Room} from "./models/Room";
+import {checkWinner, getRooms, joinToRoom, newRoom, startGame} from "./socket";
+import {IUser} from "./interfaces/user";
 
 connectToDatabase()
   .then(() => {

@@ -6,4 +6,6 @@ export interface IUser {
     lastName: string;
     email: string;
     password: string;
+    wins?: number
+    losses?: number
 }

@@ -7,10 +7,16 @@ const RoomSchema = new Schema<IRoom>(
           type: String,
           required: true
       },
-      users: {
-          type: Number,
-          required: true
-      }
+      users: [
+          {
+              type: Schema.Types.ObjectId,
+              ref: 'User',
+          },
+      ],
+      gameIsStarted: {
+          type: Boolean,
+          default: false
+      },
   },
   {timestamps: true}
 )

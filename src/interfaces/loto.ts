@@ -1,10 +1,8 @@
+import {IUser} from "./user";
+
 export interface IRoom {
-    roomName: {
-        type: String,
-        required: true
-    },
-    users: {
-        type: Number,
-        required: true
-    }
+    _id: string
+    roomName: string
+    users: Partial<IUser>[]
+    gameIsStarted: boolean
 }
