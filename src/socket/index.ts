@@ -146,3 +146,27 @@ export async function checkSelected(socket: Socket, io: any, user: IUser, roomId
     const updatedRoomAfterUpdate = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
     io.emit('roomData', updatedRoomAfterUpdate);
 }
+
+export async function checkNotMarkedItems(socket: Socket, io: any, user: IUser, roomId: string, num: number){
+    const updatedRoom = await Room.findById(roomId)
+      .populate(['users'])
+      .exec();
+
+    const populatedRoom: any = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
+    const currentUser = populatedRoom.users.find((u: IUser) => !(u._id instanceof Types.ObjectId) || u._id.equals(user._id));
+
+    if (currentUser) {
+        currentUser.tickets.data = currentUser.tickets.data.map((data: any) => {
+            return data.map((item: any) =>
+              item.map((i: any) =>
+                i && i.num === num && !i.selected ? {...i, notMarked: true} : i
+              )
+            )
+        });
+
+        await Ticket.findOneAndUpdate({ user: user._id }, { data: currentUser.tickets.data });
+    }
+
+    const updatedRoomAfterUpdate = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
+    io.emit('roomData', updatedRoomAfterUpdate);
+}
