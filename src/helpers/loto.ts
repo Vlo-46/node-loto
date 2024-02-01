@@ -77,7 +77,7 @@ function shuffleArray(array: any[]): any[] {
 
 export function generateExpectedNumbers(): number[] {
     const generatedNumbers = []
-    for (let i = 1; i < 100; i++) {
+    for (let i = 1; i < 10; i++) {
         generatedNumbers.push(i)
     }
     return shuffleArray(generatedNumbers)

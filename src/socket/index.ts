@@ -6,7 +6,6 @@ import {ExpectedNumber} from "../models/ExpectedNumbers";
 import {IUser} from "../interfaces/user";
 import {Ticket} from "../models/Ticket";
 import {createTickets, generateExpectedNumbers} from "../helpers/loto";
-import {populate} from "dotenv";
 
 export async function getRooms(socket: Socket) {
     const allRooms: any = await Room.find()
@@ -100,7 +99,7 @@ export async function startGame(socket: Socket, roomId: string) {
 }
 
 export async function expectedNumber(socket: Socket, io: any, roomId: string) {
-    const room: any = await Room.findById(roomId)
+    const room: any = await Room.findById(roomId).populate('users')
     if (!room || !room.gameIsStarted) return
 
     const expectedNumbers: any = await ExpectedNumber.findById(room.expectedNumbers);
@@ -109,7 +108,7 @@ export async function expectedNumber(socket: Socket, io: any, roomId: string) {
     let numbers = expectedNumbers.numbers;
 
     if (!numbers.length) {
-        socket.emit('finishGame', {winners: false})
+        await finishGame(socket, io, room.users, roomId)
     }
 
     const expectedNumber = numbers.shift()
@@ -132,15 +131,15 @@ export async function checkSelected(socket: Socket, io: any, user: IUser, roomId
     const currentUser = populatedRoom.users.find((u: IUser) => !(u._id instanceof Types.ObjectId) || u._id.equals(user._id));
 
     if (currentUser) {
-        currentUser.tickets.data = currentUser.tickets.data.map((data: any) =>
-          data.map((item: any) =>
+        currentUser.tickets.data = currentUser.tickets.data?.map((data: any) =>
+          data?.map((item: any) =>
             item.map((i: any) =>
               i && i.num === num ? { ...i, selected: true } : i
             )
           )
         );
 
-        await Ticket.findOneAndUpdate({ user: user._id }, { data: currentUser.tickets.data });
+        await Ticket.findOneAndUpdate({ user: user._id }, { data: currentUser.tickets?.data });
     }
 
     const updatedRoomAfterUpdate = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
@@ -156,8 +155,8 @@ export async function checkNotMarkedItems(socket: Socket, io: any, user: IUser, 
     const currentUser = populatedRoom.users.find((u: IUser) => !(u._id instanceof Types.ObjectId) || u._id.equals(user._id));
 
     if (currentUser) {
-        currentUser.tickets.data = currentUser.tickets.data.map((data: any) => {
-            return data.map((item: any) =>
+        currentUser.tickets.data = currentUser.tickets?.data?.map((data: any) => {
+            return data?.map((item: any) =>
               item.map((i: any) =>
                 i && i.num === num && !i.selected ? {...i, notMarked: true} : i
               )
@@ -169,4 +168,15 @@ export async function checkNotMarkedItems(socket: Socket, io: any, user: IUser, 
 
     const updatedRoomAfterUpdate = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
     io.emit('roomData', updatedRoomAfterUpdate);
+}
+
+export async function finishGame(socket: Socket, io: any, users: any, roomId: string) {
+    io.emit('finishGame', {winners: false})
+    const userIds = users.map((user: any) => user._id);
+
+    await User.updateMany({ _id: { $in: userIds } }, { $inc: { losses: 1 } });
+    await User.updateMany({ _id: { $in: userIds } }, { $unset: { 'tickets': 1 } });
+    await ExpectedNumber.deleteMany({ user: { $in: userIds } });
+    await Ticket.deleteMany({ user: { $in: userIds } });
+    await Room.findByIdAndDelete(roomId)
 }
