@@ -42,7 +42,7 @@ morgan(function (tokens, req, res) {
 })
 
 // sockets
-import {expectedNumber, getRooms, joinToRoom, newRoom, startGame} from "./socket";
+import {checkCreationRoomRule, expectedNumber, getRooms, joinToRoom, newRoom, startGame} from "./socket";
 import {IUser} from "./interfaces/user";
 
 interface IConnectedUser {
@@ -63,6 +63,8 @@ io.on('connection', (socket: any) => {
     socket.on('joinToRoom', async ({roomId, user}: {roomId: string, user: IUser}) => await joinToRoom(socket, roomId, io, user))
 
     socket.on('expectedNumber', async (roomId: string) => expectedNumber(socket, io, roomId))
+
+    socket.on('canCreateRoom', async (user: IUser) => checkCreationRoomRule(socket, io, user))
 
     // socket.on('winner', async (user: IUser) => await checkWinner(socket, user, io));
 

@@ -117,3 +117,8 @@ export async function expectedNumber(socket: Socket, io: any, roomId: string) {
     await expectedNumbers.save()
     socket.emit('expectedNumber', expectedNumber)
 }
+
+export async function checkCreationRoomRule(socket: Socket, io: any, user: IUser) {
+    const canCreate = await Room.findOne({author: user._id})
+    socket.emit('canCreateRoom', !!canCreate)
+}
