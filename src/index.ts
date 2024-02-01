@@ -42,6 +42,8 @@ morgan(function (tokens, req, res) {
 })
 
 // sockets
+import {expectedNumber, getRooms, joinToRoom, newRoom, startGame} from "./socket";
+import {IUser} from "./interfaces/user";
 
 interface IConnectedUser {
     id: string
@@ -54,13 +56,15 @@ let connectedUsers: IConnectedUser[] = [];
 io.on('connection', (socket: any) => {
     socket.on('startGame', (roomId: string) => startGame(socket, roomId))
 
-    // socket.on('winner', async (user: IUser) => await checkWinner(socket, user, io));
-
     socket.on('getRooms', async () => await getRooms(socket))
 
     socket.on('createRoom', async ({roomName, user}: {roomName: string, user: IUser}) => await newRoom(socket, roomName, io, user))
 
     socket.on('joinToRoom', async ({roomId, user}: {roomId: string, user: IUser}) => await joinToRoom(socket, roomId, io, user))
+
+    socket.on('expectedNumber', async (roomId: string) => expectedNumber(socket, io, roomId))
+
+    // socket.on('winner', async (user: IUser) => await checkWinner(socket, user, io));
 
     socket.on('disconnect', () => {
         const userIndex = connectedUsers.findIndex(user => user.id === socket.id);
@@ -68,11 +72,6 @@ io.on('connection', (socket: any) => {
             connectedUsers.splice(userIndex, 1);
             io.emit('updateUsers', connectedUsers);
         }
-
-        // if (connectedUsers.length === 1 && gameIsStarted) {
-        //     io.emit('gameOver', connectedUsers[0].name)
-        //     gameIsStarted = false
-        // }
     });
 });
 
@@ -90,9 +89,6 @@ app.use('/settings', settingsRoute);
 
 // database
 import { connectToDatabase } from './database';
-import {Room} from "./models/Room";
-import {checkWinner, getRooms, joinToRoom, newRoom, startGame} from "./socket";
-import {IUser} from "./interfaces/user";
 
 connectToDatabase()
   .then(() => {

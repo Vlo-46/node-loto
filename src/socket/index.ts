@@ -6,6 +6,7 @@ import {ExpectedNumber} from "../models/ExpectedNumbers";
 import {IUser} from "../interfaces/user";
 import {Ticket} from "../models/Ticket";
 import {createTickets, generateExpectedNumbers} from "../helpers/loto";
+import {populate} from "dotenv";
 
 export async function getRooms(socket: Socket) {
     const allRooms: any = await Room.find()
@@ -31,43 +32,53 @@ export async function newRoom(socket: Socket, roomName: string, io: any, user: I
 
 export async function joinToRoom(socket: Socket, roomId: string, io: any, user: IUser) {
     const currentRoom: any = await Room.findById(roomId).populate('users').exec()
-    if (!currentRoom || currentRoom.users.length >= 5 || !!currentRoom.users.find((u: IUser) => !(u._id instanceof Types.ObjectId) || u._id.equals(user._id))) {
-        console.log('user is exist')
+    if (!currentRoom || currentRoom.users.length >= 5) {
         io.emit('userExist')
         return
     }
 
-    const generatedTickets = createTickets()
-    const tickets = await Ticket.create({
-        data: generatedTickets,
-        user: user._id
-    })
+    const isUserExist = !!currentRoom.users.find((u: IUser) => !(u._id instanceof Types.ObjectId) || u._id.equals(user._id))
 
-    await User.findByIdAndUpdate(
-      user._id,
-      {
-          $push: { tickets: tickets._id },
-      },
-      { new: true }
-    );
+    let updatedRoom: any = await Room.findById(roomId)
+      .populate(['users', 'author'])
+      .exec();
 
-    const updatedRoom: any = await Room.findByIdAndUpdate(
-      roomId,
-      {
-          $push: {users: user._id},
-      },
-      {
-          new: true,
-          returnOriginal: false,
-          populate: ['users', 'expectedNumbers', 'author']
-      }
-    );
+    updatedRoom = await Room.populate(updatedRoom, {path: 'users', populate: {path: 'tickets'}})
 
-    const roomWithUsersAndTickets = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
+    if (!isUserExist) {
+        const generatedTickets = createTickets()
+        const tickets = await Ticket.create({
+            data: generatedTickets,
+            user: user._id
+        })
 
+        await User.findByIdAndUpdate(
+          user._id,
+          {
+              $push: {tickets: tickets._id},
+          },
+          {new: true}
+        );
+
+        updatedRoom = await Room.findByIdAndUpdate(
+          roomId,
+          {
+              $push: {users: user._id},
+          },
+          {
+              new: true,
+              returnOriginal: false,
+              populate: ['users', 'author']
+          }
+        );
+
+        const roomWithUsersAndTickets = await Room.populate(updatedRoom, {path: 'users', populate: {path: 'tickets'}});
+        io.emit('roomData', roomWithUsersAndTickets)
+    }
+
+    io.emit('roomData', updatedRoom)
     const allRooms: any = await Room.find().populate('users').exec();
     io.emit('updateRooms', allRooms)
-    io.emit('roomData', roomWithUsersAndTickets)
 }
 
 export async function checkWinner(socket: Socket, user: IUser, io: any) {
@@ -85,5 +96,24 @@ export async function startGame(socket: Socket, roomId: string) {
       {gameIsStarted: true},
       {new: true, returnOriginal: false, populate: 'users'}
     );
-    socket.emit('startGame', updatedRoom.gameIsStarted)
+    socket.emit('gameIsStarted', updatedRoom.gameIsStarted)
+}
+
+export async function expectedNumber(socket: Socket, io: any, roomId: string) {
+    const room: any = await Room.findById(roomId)
+    if (!room || !room.gameIsStarted) return
+
+    const expectedNumbers: any = await ExpectedNumber.findById(room.expectedNumbers);
+    if (!expectedNumbers) return;
+
+    let numbers = expectedNumbers.numbers;
+
+    if (!numbers.length) {
+        socket.emit('finishGame', {winners: false})
+    }
+
+    const expectedNumber = numbers.shift()
+    expectedNumbers.numbers = [...numbers]
+    await expectedNumbers.save()
+    socket.emit('expectedNumber', expectedNumber)
 }

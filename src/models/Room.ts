@@ -1,7 +1,11 @@
 import {Schema, model, Model} from 'mongoose'
 import {IRoom} from '../interfaces/loto'
 
-const RoomSchema = new Schema<IRoom>(
+interface IRoomDocument extends IRoom, Document {
+    expectedNumbers: Schema.Types.ObjectId;
+}
+
+const RoomSchema = new Schema<IRoomDocument>(
   {
       roomName: {
           type: String,
@@ -29,5 +33,16 @@ const RoomSchema = new Schema<IRoom>(
   {timestamps: true}
 )
 
-export const Room: Model<IRoom> = model('Room', RoomSchema)
+RoomSchema.post('findOneAndDelete', async function (doc: IRoomDocument | null) {
+    if (doc) {
+        try {
+            // Remove the associated ExpectedNumber
+            await model('ExpectedNumber').findByIdAndDelete(doc.expectedNumbers);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+});
+
+export const Room: Model<IRoomDocument> = model('Room', RoomSchema)
 
