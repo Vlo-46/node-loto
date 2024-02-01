@@ -8,4 +8,5 @@ export interface IUser {
     password: string;
     wins?: number
     losses?: number
+    tickets?: any
 }

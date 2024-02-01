@@ -25,7 +25,7 @@ export async function newRoom(socket: Socket, roomName: string, io: any, user: I
         expectedNumbers: expectedNumbers._id
     })
 
-    const allRooms: any = await Room.find().populate('tickets')
+    const allRooms: any = await Room.find()
     io.emit('updateRooms', allRooms)
 }
 
@@ -43,16 +43,31 @@ export async function joinToRoom(socket: Socket, roomId: string, io: any, user: 
         user: user._id
     })
 
-    const updatedRoom: any = await Room.findByIdAndUpdate(
-      roomId,
-      {$push: {users: user._id}, tickets: tickets._id},
-      {new: true, returnOriginal: false, populate: ['users', 'expectedNumbers', 'tickets', 'author']}
+    await User.findByIdAndUpdate(
+      user._id,
+      {
+          $push: { tickets: tickets._id },
+      },
+      { new: true }
     );
 
+    const updatedRoom: any = await Room.findByIdAndUpdate(
+      roomId,
+      {
+          $push: {users: user._id},
+      },
+      {
+          new: true,
+          returnOriginal: false,
+          populate: ['users', 'expectedNumbers', 'author']
+      }
+    );
+
+    const roomWithUsersAndTickets = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
+
     const allRooms: any = await Room.find().populate('users').exec();
-    io.emit('updateUsers', updatedRoom.users);
     io.emit('updateRooms', allRooms)
-    io.emit('roomData', updatedRoom)
+    io.emit('roomData', roomWithUsersAndTickets)
 }
 
 export async function checkWinner(socket: Socket, user: IUser, io: any) {

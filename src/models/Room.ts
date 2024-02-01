@@ -21,10 +21,6 @@ const RoomSchema = new Schema<IRoom>(
           type: Schema.Types.ObjectId,
           ref: 'User',
       },
-      tickets: {
-          type: Schema.Types.ObjectId,
-          ref: "Ticket",
-      },
       expectedNumbers: {
           type: Schema.Types.ObjectId,
           ref: "ExpectedNumber"

@@ -9,6 +9,10 @@ const UserSchema = new Schema<IUser>(
       password: {type: String, required: true},
       wins: {type: Number, default: 0},
       losses: {type: Number, default: 0},
+      tickets: {
+          type: Schema.Types.ObjectId,
+          ref: 'Ticket',
+      }
   },
   {timestamps: true}
 );
