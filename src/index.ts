@@ -45,8 +45,7 @@ morgan(function (tokens, req, res) {
 import {
     checkCreationRoomRule,
     checkNotMarkedItems,
-    checkSelected,
-    expectedNumber,
+    checkSelected, finishGame,
     getRooms,
     joinToRoom,
     newRoom,
@@ -71,13 +70,13 @@ io.on('connection', (socket: any) => {
 
     socket.on('joinToRoom', async ({roomId, user}: {roomId: string, user: IUser}) => await joinToRoom(socket, roomId, io, user))
 
-    socket.on('expectedNumber', async (roomId: string) => expectedNumber(socket, io, roomId))
-
     socket.on('canCreateRoom', async (user: IUser) => checkCreationRoomRule(socket, io, user))
 
     socket.on('checkSelected', async ({user, roomId, num}: {user: IUser, roomId: string, num: number}) => checkSelected(socket, io, user, roomId, num))
 
     socket.on('checkNotMarkedItems', async ({user, roomId, num}: {user: IUser, roomId: string, num: number}) => checkNotMarkedItems(socket, io, user, roomId, num))
+
+    socket.on('gameIsFinished', async ({users, roomId}: {users: IUser[], roomId: string}) => finishGame(socket, io, users, roomId, false))
 
     // socket.on('winner', async (user: IUser) => await checkWinner(socket, user, io));
 

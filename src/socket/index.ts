@@ -39,7 +39,7 @@ export async function joinToRoom(socket: Socket, roomId: string, io: any, user: 
     const isUserExist = !!currentRoom.users.find((u: IUser) => !(u._id instanceof Types.ObjectId) || u._id.equals(user._id))
 
     let updatedRoom: any = await Room.findById(roomId)
-      .populate(['users', 'author'])
+      .populate(['users', 'author', 'expectedNumbers'])
       .exec();
 
     updatedRoom = await Room.populate(updatedRoom, {path: 'users', populate: {path: 'tickets'}})
@@ -98,25 +98,6 @@ export async function startGame(socket: Socket, roomId: string) {
     socket.emit('gameIsStarted', updatedRoom.gameIsStarted)
 }
 
-export async function expectedNumber(socket: Socket, io: any, roomId: string) {
-    const room: any = await Room.findById(roomId).populate('users')
-    if (!room || !room.gameIsStarted) return
-
-    const expectedNumbers: any = await ExpectedNumber.findById(room.expectedNumbers);
-    if (!expectedNumbers) return;
-
-    let numbers = expectedNumbers.numbers;
-
-    if (!numbers.length) {
-        await finishGame(socket, io, room.users, roomId)
-    }
-
-    const expectedNumber = numbers.shift()
-    expectedNumbers.numbers = [...numbers]
-    await expectedNumbers.save()
-    socket.emit('expectedNumber', expectedNumber)
-}
-
 export async function checkCreationRoomRule(socket: Socket, io: any, user: IUser) {
     const canCreate = await Room.findOne({author: user._id})
     socket.emit('canCreateRoom', !!canCreate)
@@ -124,34 +105,34 @@ export async function checkCreationRoomRule(socket: Socket, io: any, user: IUser
 
 export async function checkSelected(socket: Socket, io: any, user: IUser, roomId: string, num: number) {
     const updatedRoom = await Room.findById(roomId)
-      .populate(['users'])
+      .populate(['users', 'expectedNumbers'])
       .exec();
 
-    const populatedRoom: any = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
+    const populatedRoom: any = await Room.populate(updatedRoom, {path: 'users', populate: {path: 'tickets'}});
     const currentUser = populatedRoom.users.find((u: IUser) => !(u._id instanceof Types.ObjectId) || u._id.equals(user._id));
 
     if (currentUser) {
         currentUser.tickets.data = currentUser.tickets.data?.map((data: any) =>
           data?.map((item: any) =>
             item.map((i: any) =>
-              i && i.num === num ? { ...i, selected: true } : i
+              i && i.num === num ? {...i, selected: true} : i
             )
           )
         );
 
-        await Ticket.findOneAndUpdate({ user: user._id }, { data: currentUser.tickets?.data });
+        await Ticket.findOneAndUpdate({user: user._id}, {data: currentUser.tickets?.data});
     }
 
-    const updatedRoomAfterUpdate = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
+    const updatedRoomAfterUpdate = await Room.populate(updatedRoom, {path: 'users', populate: {path: 'tickets'}});
     io.emit('roomData', updatedRoomAfterUpdate);
 }
 
-export async function checkNotMarkedItems(socket: Socket, io: any, user: IUser, roomId: string, num: number){
+export async function checkNotMarkedItems(socket: Socket, io: any, user: IUser, roomId: string, num: number) {
     const updatedRoom = await Room.findById(roomId)
-      .populate(['users'])
+      .populate(['users', 'expectedNumbers'])
       .exec();
 
-    const populatedRoom: any = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
+    const populatedRoom: any = await Room.populate(updatedRoom, {path: 'users', populate: {path: 'tickets'}});
     const currentUser = populatedRoom.users.find((u: IUser) => !(u._id instanceof Types.ObjectId) || u._id.equals(user._id));
 
     if (currentUser) {
@@ -163,20 +144,24 @@ export async function checkNotMarkedItems(socket: Socket, io: any, user: IUser, 
             )
         });
 
-        await Ticket.findOneAndUpdate({ user: user._id }, { data: currentUser.tickets.data });
+        await Ticket.findOneAndUpdate({user: user._id}, {data: currentUser.tickets.data});
     }
 
-    const updatedRoomAfterUpdate = await Room.populate(updatedRoom, { path: 'users', populate: { path: 'tickets' } });
+    const updatedRoomAfterUpdate = await Room.populate(updatedRoom, {path: 'users', populate: {path: 'tickets'}});
     io.emit('roomData', updatedRoomAfterUpdate);
 }
 
-export async function finishGame(socket: Socket, io: any, users: any, roomId: string) {
-    io.emit('finishGame', {winners: false})
+export async function finishGame(socket: Socket, io: any, users: any, roomId: string, winners: boolean) {
+    io.emit('finishGame', {
+        winners: winners ? {
+            winner: "test"
+        } : false
+    })
     const userIds = users.map((user: any) => user._id);
 
-    await User.updateMany({ _id: { $in: userIds } }, { $inc: { losses: 1 } });
-    await User.updateMany({ _id: { $in: userIds } }, { $unset: { 'tickets': 1 } });
-    await ExpectedNumber.deleteMany({ user: { $in: userIds } });
-    await Ticket.deleteMany({ user: { $in: userIds } });
+    await User.updateMany({_id: {$in: userIds}}, {$inc: {losses: 1}});
+    await User.updateMany({_id: {$in: userIds}}, {$unset: {'tickets': 1}});
+    await ExpectedNumber.deleteMany({user: {$in: userIds}});
+    await Ticket.deleteMany({user: {$in: userIds}});
     await Room.findByIdAndDelete(roomId)
 }
